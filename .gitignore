@@ -1,4 +1,5 @@
 http-file-server
+config.json
 # Created by https://www.gitignore.io/api/go,vim
 # Edit at https://www.gitignore.io/?templates=go,vim
 
