@@ -30,6 +30,9 @@ func main() {
 	// router
 	r := mux.NewRouter()
 
+	fs := http.FileServer(http.Dir("static/"))
+	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fs))
+
 	// some routes appear here...
 
 	// receive signal
