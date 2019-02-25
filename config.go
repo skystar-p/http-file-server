@@ -7,16 +7,16 @@ import (
 )
 
 type WebAuthnConfig struct {
-	RPID string
-	UserID string
-	UserName string
-	DisplayName string
-	Timeout int
+	RPID string `json:"rpId"`
+	UserID string `json:"userId"`
+	UserName string `json:"username"`
+	DisplayName string `json:"displayName"`
+	Timeout int `json:"timeout"`
 }
 
 type Config struct {
-	RootPath string
-	WebAuthn WebAuthnConfig
+	RootPath string `json:"rootPath"`
+	WebAuthn WebAuthnConfig `json:"webauthn"`
 }
 
 func ParseConfig(configPath string) (*Config, error) {
