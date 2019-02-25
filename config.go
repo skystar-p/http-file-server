@@ -6,8 +6,17 @@ import (
 	"os"
 )
 
+type WebAuthnConfig struct {
+	RPID string
+	UserID string
+	UserName string
+	DisplayName string
+	Timeout int
+}
+
 type Config struct {
 	RootPath string
+	WebAuthn WebAuthnConfig
 }
 
 func ParseConfig(configPath string) (*Config, error) {

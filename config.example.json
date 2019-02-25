@@ -1,3 +1,10 @@
 {
-  "RootPath": "/path/to/root"
+  "RootPath": "/path/to/root",
+  "WebAuthn": {
+    "RPID": "rpid",
+    "UserID": "user id",
+    "UserName": "username",
+    "DisplayName": "dn",
+    "Timeout": 60000
+  }
 }

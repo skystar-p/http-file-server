@@ -13,14 +13,15 @@ import (
 )
 
 var store *sessions.CookieStore
+var conf *Config
 
 func main() {
 	// read configuration
 	config, err := ParseConfig("config.json")
+	conf = config
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("setting root path to %s\n", config.RootPath)
 
 	// initialize in-memory session store
 	randBytes := make([]byte, 32)
@@ -30,10 +31,19 @@ func main() {
 	// router
 	r := mux.NewRouter()
 
+	// static file serving
 	fs := http.FileServer(http.Dir("static/"))
 	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", fs))
 
-	// some routes appear here...
+	// webauthn
+	r.HandleFunc("/register-challenge", WebAuthnRegisterChallengeHandler).
+		Methods("POST").
+		Schemes("https")
+	r.HandleFunc("/register", WebAuthnRegistrationHandler).
+		Methods("POST").
+		Schemes("https")
+
+	r.HandleFunc("/authenticate", WebAuthnAuthenticationHandler)
 
 	// receive signal
 	sig := make(chan os.Signal)
