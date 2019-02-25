@@ -15,12 +15,23 @@ import (
 
 var store *sessions.CookieStore
 var conf *Config
-var web webauthn.WebAuthn
+var web *webauthn.WebAuthn
 
 func main() {
 	// read configuration
 	config, err := ParseConfig("config.json")
 	conf = config
+	if err != nil {
+		panic(err)
+	}
+
+	// initialize webauthn
+	web, err = webauthn.New(&webauthn.Config{
+		RPID: conf.WebAuthn.RPID,
+		RPDisplayName: conf.WebAuthn.RPDisplayName,
+		RPOrigin: conf.WebAuthn.RPOrigin,
+		RPIcon: conf.WebAuthn.RPIcon,
+	})
 	if err != nil {
 		panic(err)
 	}
@@ -39,13 +50,12 @@ func main() {
 
 	// webauthn
 	r.HandleFunc("/register-challenge", WebAuthnRegisterChallengeHandler).
-		Methods("POST").
-		Schemes("https")
+		Methods("POST")
 	r.HandleFunc("/register", WebAuthnRegistrationHandler).
-		Methods("POST").
-		Schemes("https")
+		Methods("POST")
 
-	r.HandleFunc("/authenticate", WebAuthnAuthenticationHandler)
+	r.HandleFunc("/authenticate", WebAuthnAuthenticationHandler).
+		Methods("POST")
 
 	// receive signal
 	sig := make(chan os.Signal)

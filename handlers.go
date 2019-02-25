@@ -4,26 +4,15 @@ import (
 	"fmt"
 	"net/http"
 	"encoding/json"
-	"crypto/rand"
-	"encoding/base64"
+	"github.com/duo-labs/webauthn/webauthn"
 )
 
 func WebAuthnRegisterChallengeHandler(w http.ResponseWriter, r *http.Request) {
-	chal := make([]byte, 64)
-	_, err := rand.Read(chal)
+	user := MyUser{}
+	options, sessionData, err := web.BeginRegistration(&user)
 	if err != nil {
-		http.Error(w, "unable to generate random challenge", http.StatusInternalServerError)
+		http.Error(w, "error when beginning webauthn registration", http.StatusBadRequest)
 		return
-	}
-
-	b64enc := base64.NewEncoding("utf-8")
-	chalStr := b64enc.EncodeToString(chal)
-	resp := WebAuthnRegistrationChallenge{
-		RPID: conf.WebAuthn.RPID,
-		UserName: conf.WebAuthn.UserName,
-		DisplayName: conf.WebAuthn.DisplayName,
-		Timeout: conf.WebAuthn.Timeout,
-		Challenge: chalStr,
 	}
 
 	session, err := store.Get(r, "webauthn")
@@ -32,7 +21,7 @@ func WebAuthnRegisterChallengeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	session.Values["chalStr"] = chalStr
+	session.Values["registration-data"] = sessionData
 	err = session.Save(r, w)
 	if err != nil {
 		http.Error(w, "unable to save session", http.StatusInternalServerError)
@@ -40,7 +29,7 @@ func WebAuthnRegisterChallengeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	jsonEncoder := json.NewEncoder(w)
-	err = jsonEncoder.Encode(resp)
+	err = jsonEncoder.Encode(options)
 	if err != nil {
 		http.Error(w, "unable to encode response", http.StatusInternalServerError)
 		return
@@ -48,25 +37,31 @@ func WebAuthnRegisterChallengeHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func WebAuthnRegistrationHandler(w http.ResponseWriter, r *http.Request) {
-	jsonDecoder := json.NewDecoder(r.Body)
-	regCred := WebAuthnRegistrationCredential{}
-	err := jsonDecoder.Decode(&regCred)
+	user := MyUser{}
+	session, err := store.Get(r, "webauthn")
 	if err != nil {
-		http.Error(w, "unable to decode registration request", http.StatusBadRequest)
+		http.Error(w, "unable to get session object", http.StatusInternalServerError)
 		return
 	}
 
-	// verify at here
+	sessionData, ok := session.Values["registration-data"].(webauthn.SessionData)
+	if !ok {
+		http.Error(w, "unable to get session data", http.StatusInternalServerError)
+		return
+	}
+
+	credential, err := web.FinishRegistration(&user, sessionData, r)
+	fmt.Printf("credential: %+v\n", credential)
+	if err != nil {
+		http.Error(w, "unable to finish registration", http.StatusBadRequest)
+		return
+	}
+
+	fmt.Fprintf(w, "Registration success")
 }
 
 func WebAuthnAuthenticationHandler(w http.ResponseWriter, r *http.Request) {
-	jsonDecoder := json.NewDecoder(r.Body)
-	authCred := WebAuthnAuthenticationCredential{}
-	err := jsonDecoder.Decode(&authCred)
-	if err != nil {
-		http.Error(w, "unable to decode authentication request", http.StatusBadRequest)
-		return
-	}
+
 }
 
 func AuthMiddleware(next http.Handler) http.Handler {

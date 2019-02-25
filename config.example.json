@@ -2,9 +2,8 @@
   "rootPath": "/path/to/root",
   "webauthn": {
     "rpId": "rpid",
-    "userId": "user id",
-    "username": "username",
-    "displayName": "dn",
-    "timeout": 60000
+    "rpDisplayName": "rpDisplayName",
+    "rpOrigin": "rpOrigin",
+    "rpIcon": "rpIcon"
   }
 }

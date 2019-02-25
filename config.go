@@ -8,10 +8,9 @@ import (
 
 type WebAuthnConfig struct {
 	RPID string `json:"rpId"`
-	UserID string `json:"userId"`
-	UserName string `json:"username"`
-	DisplayName string `json:"displayName"`
-	Timeout int `json:"timeout"`
+	RPDisplayName string `json:"rpDisplayName"`
+	RPOrigin string `json:"rpOrigin"`
+	RPIcon string `json:"rpIcon"`
 }
 
 type Config struct {
