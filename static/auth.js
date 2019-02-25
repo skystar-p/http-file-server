@@ -1,3 +1,62 @@
+function b64Encode(v) {
+    return base64js.fromByteArray(v)
+        .replace(/\+/g, "-")
+        .replace(/\//g, "_")
+        .replace(/=/g, "")
+}
+
+function b64Decode(v) {
+    return Uint8Array.from(atob(v), c => c.charCodeAt(0))
+}
+
+function register() {
+    axios.post('/register-challenge')
+        .then(response => {
+            let registerArgs = response.data
+            const chal = b64Decode(registerArgs.publicKey.challenge)
+            const id = b64Decode(registerArgs.publicKey.user.id)
+            registerArgs.publicKey.challenge = chal.buffer
+            registerArgs.publicKey.user.id = id
+
+            if (registerArgs.publicKey.excludeCredentials) {
+                registerArgs.publicKey.excludeCredentials.forEach((cred, i) => {
+                    registerArgs.publicKey.excludeCredentials[i] = b64Decode(cred)
+                })
+            }
+            console.log('going to create credential')
+            return navigator.credentials.create({
+                publicKey: registerArgs.publicKey,
+            })
+        })
+        .then(cred => {
+            console.log('NEW CREDENTIAL CREATED')
+            finishRegister(cred)
+        })
+        .catch(err => {
+            console.error(err)
+        })
+}
+
+function finishRegister(cred) {
+    const attestationObject = new Uint8Array(cred.response.attestationObject)
+    const clientDataJSON = new Uint8Array(cred.response.clientDataJSON)
+    const rawId = new Uint8Array(cred.rawId)
+
+    axios.post('/register', {
+        id: cred.id,
+        rawId: b64Encode(rawId),
+        type: cred.type,
+        response: {
+            attestationObject: b64Encode(attestationObject),
+            clientDataJSON: b64Encode(clientDataJSON),
+        },
+    })
+        .then(response => {
+            console.log(response)
+        })
+}
+
+/*
 var createCredentialDefaultArgs = {
     publicKey: {
         // Relying Party (a.k.a. - Service):
@@ -40,6 +99,7 @@ var getCredentialDefaultArgs = {
     },
 };
 
+console.log(createCredentialDefaultArgs)
 // register / create a new credential
 navigator.credentials.create(createCredentialDefaultArgs)
     .then((cred) => {
@@ -61,3 +121,4 @@ navigator.credentials.create(createCredentialDefaultArgs)
     .catch((err) => {
         console.log("ERROR", err);
     });
+*/

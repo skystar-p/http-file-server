@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"encoding/gob"
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
@@ -40,6 +41,7 @@ func main() {
 	randBytes := make([]byte, 32)
 	rand.Read(randBytes)
 	store = sessions.NewCookieStore(randBytes)
+	gob.Register(webauthn.SessionData{})
 
 	// router
 	r := mux.NewRouter()
