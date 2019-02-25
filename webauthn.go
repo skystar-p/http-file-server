@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"encoding/base64"
 	"crypto/sha256"
-	cbor "github.com/brianolson/cbor_go"
 )
 
 type WebAuthnRegistrationChallenge struct {

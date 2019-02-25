@@ -1,7 +1,6 @@
 module github.com/skystar-p/http-file-server
 
 require (
-	github.com/brianolson/cbor_go v1.0.0
 	github.com/duo-labs/webauthn v0.0.0-20190222214509-d6c4408809cb
 	github.com/google/go-tpm v0.1.1 // indirect
 	github.com/gorilla/mux v1.7.0
