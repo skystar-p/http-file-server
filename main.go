@@ -10,10 +10,12 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
+	"github.com/duo-labs/webauthn/webauthn"
 )
 
 var store *sessions.CookieStore
 var conf *Config
+var web webauthn.WebAuthn
 
 func main() {
 	// read configuration
