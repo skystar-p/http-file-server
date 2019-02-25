@@ -1,21 +1,12 @@
 package main
 
 import (
-	// "fmt"
+	"fmt"
 	"net/http"
 	"encoding/json"
 	"crypto/rand"
 	"encoding/base64"
-	// "github.com/gorilla/mux"
 )
-
-type WebAuthnRegistrationResponse struct {
-	RPID string
-	UserName string
-	DisplayName string
-	Timeout int
-	Challenge string
-}
 
 func WebAuthnRegisterChallengeHandler(w http.ResponseWriter, r *http.Request) {
 	chal := make([]byte, 64)
@@ -27,7 +18,7 @@ func WebAuthnRegisterChallengeHandler(w http.ResponseWriter, r *http.Request) {
 
 	b64enc := base64.NewEncoding("utf-8")
 	chalStr := b64enc.EncodeToString(chal)
-	resp := WebAuthnRegistrationResponse{
+	resp := WebAuthnRegistrationChallenge{
 		RPID: conf.WebAuthn.RPID,
 		UserName: conf.WebAuthn.UserName,
 		DisplayName: conf.WebAuthn.DisplayName,
@@ -35,19 +26,47 @@ func WebAuthnRegisterChallengeHandler(w http.ResponseWriter, r *http.Request) {
 		Challenge: chalStr,
 	}
 
+	session, err := store.Get(r, "webauthn")
+	if err != nil {
+		http.Error(w, "unable to get session object", http.StatusInternalServerError)
+		return
+	}
+
+	session.Values["chalStr"] = chalStr
+	err = session.Save(r, w)
+	if err != nil {
+		http.Error(w, "unable to save session", http.StatusInternalServerError)
+		return
+	}
+
 	jsonEncoder := json.NewEncoder(w)
 	err = jsonEncoder.Encode(resp)
 	if err != nil {
 		http.Error(w, "unable to encode response", http.StatusInternalServerError)
+		return
 	}
 }
 
 func WebAuthnRegistrationHandler(w http.ResponseWriter, r *http.Request) {
+	jsonDecoder := json.NewDecoder(r.Body)
+	regCred := WebAuthnRegistrationCredential{}
+	err := jsonDecoder.Decode(&regCred)
+	if err != nil {
+		http.Error(w, "unable to decode registration request", http.StatusBadRequest)
+		return
+	}
 
+	// verify at here
 }
 
 func WebAuthnAuthenticationHandler(w http.ResponseWriter, r *http.Request) {
-
+	jsonDecoder := json.NewDecoder(r.Body)
+	authCred := WebAuthnAuthenticationCredential{}
+	err := jsonDecoder.Decode(&authCred)
+	if err != nil {
+		http.Error(w, "unable to decode authentication request", http.StatusBadRequest)
+		return
+	}
 }
 
 func AuthMiddleware(next http.Handler) http.Handler {
