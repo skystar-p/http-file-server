@@ -19,6 +19,8 @@ function register() {
             registerArgs.publicKey.user.id = id
             // should we really do this?
             registerArgs.publicKey.rp = {
+                // id should be the subset of domain
+                id: 'localhost',
                 name: registerArgs.publicKey.rp.name,
             }
 
@@ -36,18 +38,7 @@ function register() {
             finishRegister(cred)
         })
         .catch(err => {
-            if (err.response) {
-                console.log('err.response')
-                console.error(err.response.data)
-                console.error(err.response.status)
-                console.error(err.response.headers)
-            } else if (err.request) {
-                console.log('err.request')
-                console.log(err.request)
-            } else {
-                console.log('else')
-                console.log(err.message)
-            }
+            console.error(err)
         })
 }
 
@@ -69,18 +60,7 @@ function finishRegister(cred) {
             console.log(response)
         })
         .catch(err => {
-            if (err.response) {
-                console.log('err.response')
-                console.error(err.response.data)
-                console.error(err.response.status)
-                console.error(err.response.headers)
-            } else if (err.request) {
-                console.log('err.request')
-                console.log(err.request)
-            } else {
-                console.log('else')
-                console.log(err.message)
-            }
+            console.error(err)
         })
 }
 
