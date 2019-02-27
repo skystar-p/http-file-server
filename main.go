@@ -10,11 +10,12 @@ import (
 	"encoding/gob"
 
 	"github.com/gorilla/mux"
-	"github.com/gorilla/sessions"
+	// "github.com/gorilla/sessions"
 	"github.com/duo-labs/webauthn/webauthn"
+	"github.com/boj/redistore"
 )
 
-var store *sessions.CookieStore
+var store *redistore.RediStore
 var conf *Config
 var web *webauthn.WebAuthn
 
@@ -40,8 +41,13 @@ func main() {
 	// initialize in-memory session store
 	randBytes := make([]byte, 32)
 	rand.Read(randBytes)
-	store = sessions.NewCookieStore(randBytes)
+	// store = sessions.NewCookieStore(randBytes)
+	store, err = redistore.NewRediStore(10, "tcp", ":6379", "", randBytes)
+	if err != nil {
+		panic(err)
+	}
 	gob.Register(webauthn.SessionData{})
+	gob.Register(webauthn.Credential{})
 
 	// router
 	r := mux.NewRouter()
@@ -56,6 +62,8 @@ func main() {
 	r.HandleFunc("/register", WebAuthnRegistrationHandler).
 		Methods("POST")
 
+	r.HandleFunc("/authenticate-challenge", WebAuthnRegisterChallengeHandler).
+		Methods("POST")
 	r.HandleFunc("/authenticate", WebAuthnAuthenticationHandler).
 		Methods("POST")
 

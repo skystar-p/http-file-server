@@ -61,7 +61,6 @@ func WebAuthnRegistrationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionData, ok := session.Values["registration-data"].(webauthn.SessionData)
-	fmt.Printf("sessionData: %+v\n", sessionData)
 	if !ok {
 		http.Error(w, "unable to get session data", http.StatusInternalServerError)
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
@@ -69,9 +68,16 @@ func WebAuthnRegistrationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	credential, err := web.FinishRegistration(&user, sessionData, r)
-	fmt.Printf("credential: %+v\n", credential)
 	if err != nil {
 		http.Error(w, "unable to finish registration", http.StatusBadRequest)
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		return
+	}
+
+	session.Values["credential"] = credential
+	err = session.Save(r, w)
+	if err != nil {
+		http.Error(w, "unable to save session", http.StatusInternalServerError)
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		return
 	}
@@ -79,8 +85,77 @@ func WebAuthnRegistrationHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Registration success")
 }
 
-func WebAuthnAuthenticationHandler(w http.ResponseWriter, r *http.Request) {
+func WebAuthnAuthenticateChallengeHandler(w http.ResponseWriter, r *http.Request) {
+	user := MyUser{id: make([]byte, 16)}
+	options, sessionData, err := web.BeginLogin(&user)
+	if err != nil {
+		http.Error(w, "unable to begin webauthn login", http.StatusInternalServerError)
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		return
+	}
 
+	session, err := store.Get(r, "webauthn")
+	if err != nil {
+		http.Error(w, "unable to get session object", http.StatusInternalServerError)
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		return
+	}
+
+	session.Values["authentication-data"] = &sessionData
+	err = session.Save(r, w)
+	if err != nil {
+		http.Error(w, "unable to save session", http.StatusInternalServerError)
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		return
+	}
+
+	jsonEncoder := json.NewEncoder(w)
+	err = jsonEncoder.Encode(options)
+	if err != nil {
+		http.Error(w, "unable to encode response", http.StatusInternalServerError)
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		return
+	}
+}
+
+func WebAuthnAuthenticationHandler(w http.ResponseWriter, r *http.Request) {
+	user := MyUser{id: make([]byte, 16)}
+	session, err := store.Get(r, "webauthn")
+	if err != nil {
+		http.Error(w, "unable to get session object", http.StatusInternalServerError)
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		return
+	}
+
+	sessionData, ok := session.Values["authentication-data"].(webauthn.SessionData)
+	if !ok {
+		http.Error(w, "unable to get session data", http.StatusInternalServerError)
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		return
+	}
+
+	credential, err := web.FinishLogin(&user, sessionData, r)
+	if err != nil {
+		http.Error(w, "unable to finish login", http.StatusInternalServerError)
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		return
+	}
+
+	if credential.Authenticator.CloneWarning {
+		http.Error(w, "credential clone warning", http.StatusBadRequest)
+		fmt.Fprintf(os.Stderr, "credential clone warning\n")
+		return
+	}
+
+	session.Values["credential"] = credential
+	err = session.Save(r, w)
+	if err != nil {
+		http.Error(w, "unable to save session", http.StatusInternalServerError)
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		return
+	}
+
+	fmt.Fprintf(w, "Authentication success!")
 }
 
 func AuthMiddleware(next http.Handler) http.Handler {
