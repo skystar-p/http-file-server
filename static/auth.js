@@ -17,23 +17,37 @@ function register() {
             const id = b64Decode(registerArgs.publicKey.user.id)
             registerArgs.publicKey.challenge = chal.buffer
             registerArgs.publicKey.user.id = id
+            // should we really do this?
+            registerArgs.publicKey.rp = {
+                name: registerArgs.publicKey.rp.name,
+            }
 
             if (registerArgs.publicKey.excludeCredentials) {
                 registerArgs.publicKey.excludeCredentials.forEach((cred, i) => {
                     registerArgs.publicKey.excludeCredentials[i] = b64Decode(cred)
                 })
             }
-            console.log('going to create credential')
+
             return navigator.credentials.create({
                 publicKey: registerArgs.publicKey,
             })
         })
         .then(cred => {
-            console.log('NEW CREDENTIAL CREATED')
             finishRegister(cred)
         })
         .catch(err => {
-            console.error(err)
+            if (err.response) {
+                console.log('err.response')
+                console.error(err.response.data)
+                console.error(err.response.status)
+                console.error(err.response.headers)
+            } else if (err.request) {
+                console.log('err.request')
+                console.log(err.request)
+            } else {
+                console.log('else')
+                console.log(err.message)
+            }
         })
 }
 
@@ -53,6 +67,20 @@ function finishRegister(cred) {
     })
         .then(response => {
             console.log(response)
+        })
+        .catch(err => {
+            if (err.response) {
+                console.log('err.response')
+                console.error(err.response.data)
+                console.error(err.response.status)
+                console.error(err.response.headers)
+            } else if (err.request) {
+                console.log('err.request')
+                console.log(err.request)
+            } else {
+                console.log('else')
+                console.log(err.message)
+            }
         })
 }
 

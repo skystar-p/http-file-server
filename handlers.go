@@ -6,12 +6,21 @@ import (
 	"os"
 	"encoding/json"
 	"github.com/duo-labs/webauthn/webauthn"
+	"github.com/duo-labs/webauthn/protocol"
 )
 
 func WebAuthnRegisterChallengeHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("starting register\n")
 	user := MyUser{id: make([]byte, 16)}
-	options, sessionData, err := web.BeginRegistration(&user)
+	authSelect := protocol.AuthenticatorSelection{
+		AuthenticatorAttachment: protocol.AuthenticatorAttachment(protocol.CrossPlatform),
+		RequireResidentKey: false,
+		UserVerification: protocol.VerificationPreferred,
+	}
+	conveyencePref := protocol.ConveyancePreference(protocol.PreferNoAttestation)
+	options, sessionData, err := web.BeginRegistration(&user,
+		webauthn.WithAuthenticatorSelection(authSelect),
+		webauthn.WithConveyancePreference(conveyencePref))
 	if err != nil {
 		http.Error(w, "error when beginning webauthn registration", http.StatusBadRequest)
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
@@ -52,6 +61,7 @@ func WebAuthnRegistrationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sessionData, ok := session.Values["registration-data"].(webauthn.SessionData)
+	fmt.Printf("sessionData: %+v\n", sessionData)
 	if !ok {
 		http.Error(w, "unable to get session data", http.StatusInternalServerError)
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
