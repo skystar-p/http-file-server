@@ -86,17 +86,25 @@ func WebAuthnRegistrationHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func WebAuthnAuthenticateChallengeHandler(w http.ResponseWriter, r *http.Request) {
-	user := MyUser{id: make([]byte, 16)}
-	options, sessionData, err := web.BeginLogin(&user)
+	session, err := store.Get(r, "webauthn")
 	if err != nil {
-		http.Error(w, "unable to begin webauthn login", http.StatusInternalServerError)
+		http.Error(w, "unable to get session object", http.StatusInternalServerError)
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		return
 	}
 
-	session, err := store.Get(r, "webauthn")
+	cred, ok := session.Values["credential"].(webauthn.Credential)
+	if !ok {
+		http.Error(w, "unable to get credential object", http.StatusInternalServerError)
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		return
+	}
+	creds := make([]webauthn.Credential, 1)
+	creds[0] = cred
+	user := MyUser{id: make([]byte, 16), Credentials: creds}
+	options, sessionData, err := web.BeginLogin(&user)
 	if err != nil {
-		http.Error(w, "unable to get session object", http.StatusInternalServerError)
+		http.Error(w, "unable to begin webauthn login", http.StatusInternalServerError)
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		return
 	}
@@ -119,13 +127,22 @@ func WebAuthnAuthenticateChallengeHandler(w http.ResponseWriter, r *http.Request
 }
 
 func WebAuthnAuthenticationHandler(w http.ResponseWriter, r *http.Request) {
-	user := MyUser{id: make([]byte, 16)}
 	session, err := store.Get(r, "webauthn")
 	if err != nil {
 		http.Error(w, "unable to get session object", http.StatusInternalServerError)
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
 		return
 	}
+
+	cred, ok := session.Values["credential"].(webauthn.Credential)
+	if !ok {
+		http.Error(w, "unable to get credential object", http.StatusInternalServerError)
+		fmt.Fprintf(os.Stderr, "%s\n", err.Error())
+		return
+	}
+	creds := make([]webauthn.Credential, 1)
+	creds[0] = cred
+	user := MyUser{id: make([]byte, 16), Credentials: creds}
 
 	sessionData, ok := session.Values["authentication-data"].(webauthn.SessionData)
 	if !ok {
@@ -135,6 +152,7 @@ func WebAuthnAuthenticationHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	credential, err := web.FinishLogin(&user, sessionData, r)
+	fmt.Printf("%+v\n", sessionData)
 	if err != nil {
 		http.Error(w, "unable to finish login", http.StatusInternalServerError)
 		fmt.Fprintf(os.Stderr, "%s\n", err.Error())

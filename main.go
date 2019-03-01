@@ -62,7 +62,7 @@ func main() {
 	r.HandleFunc("/register", WebAuthnRegistrationHandler).
 		Methods("POST")
 
-	r.HandleFunc("/authenticate-challenge", WebAuthnRegisterChallengeHandler).
+	r.HandleFunc("/authenticate-challenge", WebAuthnAuthenticateChallengeHandler).
 		Methods("POST")
 	r.HandleFunc("/authenticate", WebAuthnAuthenticationHandler).
 		Methods("POST")

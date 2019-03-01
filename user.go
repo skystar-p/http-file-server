@@ -6,6 +6,7 @@ import (
 
 type MyUser struct {
 	id []byte
+	Credentials []webauthn.Credential
 }
 
 func (user *MyUser) WebAuthnID() []byte {
@@ -25,5 +26,5 @@ func (user *MyUser) WebAuthnIcon() string {
 }
 
 func (user *MyUser) WebAuthnCredentials() []webauthn.Credential {
-	return []webauthn.Credential{}
+	return user.Credentials
 }

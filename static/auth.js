@@ -64,6 +64,53 @@ function finishRegister(cred) {
         })
 }
 
+function authenticate() {
+    axios.post('/authenticate-challenge')
+        .then(response => {
+            let authArgs = response.data
+
+            const chal = b64Decode(authArgs.publicKey.challenge)
+            authArgs.publicKey.challenge = chal.buffer
+            authArgs.publicKey.allowCredentials.forEach(cred => {
+                const id = b64Decode(cred.id)
+                cred.id = id
+            })
+
+            console.log(authArgs)
+            return navigator.credentials.get(authArgs)
+        })
+        .then(assertion => {
+            finishAuthentication(assertion)
+        })
+        .catch(err => {
+            console.error(err)
+        })
+}
+
+function finishAuthentication(assertion) {
+    console.log(assertion)
+    const authenticatorData = new Uint8Array(assertion.response.authenticatorData)
+    const clientDataJSON = new Uint8Array(assertion.response.clientDataJSON)
+    const signature = new Uint8Array(assertion.response.signature)
+    const rawId = new Uint8Array(assertion.rawId)
+    axios.post('/authenticate', {
+        id: assertion.id,
+        rawId: b64Encode(rawId),
+        type: assertion.type,
+        response: {
+            authenticatorData: b64Encode(authenticatorData),
+            clientDataJSON: b64Encode(clientDataJSON),
+            signature: b64Encode(signature),
+        },
+    })
+        .then(response => {
+            console.log(response)
+        })
+        .catch(err => {
+            console.error(err)
+        })
+}
+
 /*
 var createCredentialDefaultArgs = {
     publicKey: {
